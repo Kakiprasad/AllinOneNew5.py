@@ -23,9 +23,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 # ==========================================================
 # ⚙️ CONFIGURATION & BOT INTERFACE
 # ==========================================================
-TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID") 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TOKEN = "8024122424:AAFVbkMKA7DmW20Tjl4RrolWJFh3lHJLnLY"
+CHAT_ID = "5334000073"
+GEMINI_API_KEY = "AIzaSyCnourNjWYAGilmlaChhjiB3l9vYfxDXfM"
 
 if not all([TOKEN, CHAT_ID, GEMINI_API_KEY]):
     print("⚠️ Warning: Bot Token, Chat ID లేదా Gemini API Key సెట్ చేయబడలేదు! దయచేసి చెక్ చేయండి.")
@@ -419,7 +419,7 @@ def fetch_normal_rss():
         time.sleep(120)
 
 def fetch_x_rss():
-    log("🐦 X RSS LOOP STARTED...")
+    log("🐦 X RSS STARTED...")
     scraper = cloudscraper.create_scraper()
     while True:
         for name, url in X_RSS_FEEDS.items():
@@ -438,44 +438,23 @@ def fetch_x_rss():
                     
                     is_important = check_if_important(title) or check_if_important(tel_title)
                     g_trans_url = f"https://translate.google.com/translate?sl=en&tl=te&u={link}"
-                    
-                    # 🎯 అన్ని వేరియబుల్స్ కి 'safe_html_text()' ఇక్కడే గట్టిగా లాక్ చేశాం సార్
+
+                    # 🎯 మెయిన్ ఛానల్ కోసం మీ ఒరిజినల్ హెడర్ ఫార్మాట్ అలాగే ఉంచాను సార్ (ఎలాంటి మార్పు లేదు)
                     header = f"🚀 <b>{safe_html_text(name)} Update</b>\n\n"
                     msg = f"{header}📌 <b>{safe_html_text(tel_title)}</b>\n\n🇬🇧 {safe_html_text(title)}\n\n🔗 <a href='{g_trans_url}'>Read More in Telugu</a> | <a href='{link}'>English Original</a>"
                     
                     ist_now = datetime.now(IST)
-                    image_url = get_image_url(entry) 
-                    
-                    rss_news_store.append({
-                        "time": ist_now, 
-                        "type": "X", 
-                        "source": name, 
-                        "title": tel_title, 
-                        "link": link,
-                        "image": image_url
-                    })
+                    rss_news_store.append({"time": ist_now, "type": "X", "source": name, "title": tel_title, "link": link})
                     manage_memory()
 
+                    image_url = get_image_url(entry)
                     try:
-                        sent_msg = None
+                        # 1. మెయిన్ ఛానల్‌కు అలర్ట్ మీ పాత పద్ధతిలోనే ఫోటో ఉంటే ఫోటోతో సహా వెళ్తుంది సార్
                         if image_url:
-                            try:
-                                sent_msg = bot.send_photo(CHAT_ID, image_url, caption=msg[:1024], parse_mode='HTML')
-                                log(f"📸 Image successfully sent for X-RSS from {name}")
-                            except Exception as photo_err:
-                                # 🎯 చంటి గారు, ఇక్కడ బ్యాకప్ లో పంపేటప్పుడు కూడా టెక్స్ట్ క్లీన్ అయ్యేలా 'safe_html_text' అప్లై చేశాను సార్!
-                                log(f"⚠️ Image send fail, trying safe text backup: {photo_err}", "WARNING")
-                                # ఇక్కడ లింకులు దెబ్బతినకుండా కేవలం ప్లెయిన్ టెక్స్ట్‌గా మార్చి సురక్షితంగా పంపుతుంది
-                                clean_backup_msg = f"🚀 {name} Update\n\n📌 {tel_title}\n\n🇬🇧 {title}\n\n🔗 Original: {link}"
-                                sent_msg = bot.send_message(CHAT_ID, clean_backup_msg, disable_web_page_preview=True)
+                            try: sent_msg = bot.send_photo(CHAT_ID, image_url, caption=msg[:1024], parse_mode='HTML')
+                            except Exception: sent_msg = bot.send_photo(CHAT_ID, image_url, caption=clean_html_tags(msg)[:1024])
                         else:
-                            sent_msg = bot.send_message(CHAT_ID, msg, parse_mode='HTML', disable_web_page_preview=True)
-                        
-                        if is_important and sent_msg:
-                            log(f"📌 Important Watchlist News Detected! Pinning message ID: {sent_msg.message_id}")
-                            bot.pin_chat_message(CHAT_ID, sent_msg.message_id, disable_notification=False)
-                            pinned_messages_store.append({"message_id": sent_msg.message_id, "time": ist_now})
-                            auto_unpin_old_messages()
+                            sent_msg = bot.send_message(CHAT_ID, msg, parse_mode='HTML', disable_web_page_preview=False)
                             
                     except Exception as e: log(f"❌ X Telegram Error: {e}", "ERROR")
                     time.sleep(2)
