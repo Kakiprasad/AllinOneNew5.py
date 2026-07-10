@@ -23,9 +23,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 # ==========================================================
 # ⚙️ CONFIGURATION & BOT INTERFACE
 # ==========================================================
-TOKEN = "8024122424:AAFVbkMKA7DmW20Tjl4RrolWJFh3lHJLnLY"
-CHAT_ID = "5334000073"
-GEMINI_API_KEY = "AIzaSyCnourNjWYAGilmlaChhjiB3l9vYfxDXfM"
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID") 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not all([TOKEN, CHAT_ID, GEMINI_API_KEY]):
     print("⚠️ Warning: Bot Token, Chat ID లేదా Gemini API Key సెట్ చేయబడలేదు! దయచేసి చెక్ చేయండి.")
