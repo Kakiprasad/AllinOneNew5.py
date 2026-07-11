@@ -531,6 +531,9 @@ def cmd_start(message):
 # ==========================================================
 # ⏱️ FETCH NEWS BY HOUR (సరిచేసిన చంటి గారి పవర్‌ఫుల్ కమాండ్స్)
 # ==========================================================
+# ==========================================================
+# ⏱️ FETCH NEWS BY HOUR (సరిచేసిన చంటి గారి పవర్‌ఫుల్ కమాండ్స్)
+# ==========================================================
 @bot.message_handler(commands=['get', 'getred', 'getx'])
 def get_news_by_time(message):
     cmd_name = message.text.split()[0]
@@ -570,8 +573,10 @@ def get_news_by_time(message):
             elif source_type == "X" and n.get('type') == "X" and n.get('source') != "Redbox X": filtered.append(n)
             elif source_type == "NORMAL" and n.get('type') == "NORMAL": filtered.append(n)
             
-    filtered.sort(key=lambda x: x['time'], reverse=True)
-    log(f"📊 Found {len(filtered)} matching news items in store.")
+    # మార్కెట్ అప్‌డేట్స్ కాబట్టి పాత వార్త నుండి కొత్త వార్త క్రమంలో (ఆరోహణ క్రమం) పంపితే చదవడానికి బాగుంటుంది సార్
+    filtered.sort(key=lambda x: x['time']) 
+    total_news_count = len(filtered)
+    log(f"📊 Found {total_news_count} matching news items in store.")
     
     icon = "🕒" if source_type == "NORMAL" else ("🚩" if source_type == "REDBOX" else "🐦")
     title_label = "Normal RSS" if source_type == "NORMAL" else ("Redbox" if source_type == "REDBOX" else "X RSS")
@@ -579,6 +584,7 @@ def get_news_by_time(message):
     report_header = (
         f"{icon} <b>{title_label} ({cutoff_display_str} నుండి వచ్చిన మొత్తం వార్తలు):</b>\n"
         f"📅 <b>తేదీ:</b> {current_date_str} | <b>సమయం:</b> {current_time_str}\n"
+        f"📊 <b>మొత్తం లభించిన వార్తలు:</b> {total_news_count} రికార్డులు\n"
         f"──────────────────────"
     )
     
@@ -595,16 +601,15 @@ def get_news_by_time(message):
         log(f"🔚 Finished '{cmd_name} {hour}': No data found to send.")
         return
         
-    log(f"🚀 Broadcasting {len(filtered)} items sequentially to Chat ID {message.chat.id}...")
+    log(f"🚀 Broadcasting {total_news_count} items sequentially to Chat ID {message.chat.id}...")
     for i, n in enumerate(filtered, 1):
         # వార్త టెలిగ్రామ్ బాట్ లోపలికి వచ్చిన కరెక్ట్ సమయం (IST)
         arrival_time = n['time'].astimezone(IST).strftime('%I:%M %p')
         
         if source_type == "NORMAL":
-            raw_title = n.get('full_text', '').split("   ")[0]
+            raw_title = n.get('full_text', '').split("    ")[0]
             subject_match = re.search(r'\b[a-zA-Z0-9\s\&]+', raw_title)
             
-            # ఇంగ్లీష్ పెద్ద టైటిల్స్ రాకుండా మొదటి 3 పదాల ముఖ్యాంశాన్ని మాత్రమే పట్టుకుంటుంది సార్
             if subject_match:
                 full_subject = subject_match.group(0).strip()
                 words = full_subject.split()
@@ -614,34 +619,37 @@ def get_news_by_time(message):
                 
             g_url = f"https://translate.google.com/translate?sl=en&tl=te&u={n.get('link','')}"
             
-            # లోతైన పూర్తి వివరణ కోసం టైటిల్ మరియు డిస్క్రిప్షన్ రెండింటినీ కలిపి చూపిస్తుంది
-            full_telugu_explanation = f"{n['title']}\n  {n.get('desc', '')}"
-            
+            # 🎯 చంటి గారు, మీ ఉదాహరణ ప్రకారం ఇంగ్లీష్ షార్ట్ సబ్జెక్ట్ పైన, కింద క్లీన్ తెలుగు వార్త వచ్చే స్ట్రక్చర్ సార్
             msg_block = (
-                f"⏰ <b>[{arrival_time}]</b>\n"
-                f"<b>{subject_title}:-</b>\n\n"
-                f"  {safe_html_text(full_telugu_explanation)}\n\n"
+                f"🔢 <b>[#{i}/{total_news_count}]</b>  ⏰ <b>[{arrival_time}]</b>\n"
+                f"🔹 <b>{safe_html_text(subject_title)}:</b>\n\n"
+                f"{safe_html_text(n['title'])}\n\n"
                 f"🔗 <a href='{g_url}'>Read More in Telugu</a> | <a href='{n.get('link','')}'>English Original</a>"
             )
             bot.send_message(message.chat.id, msg_block, parse_mode='HTML', disable_web_page_preview=True)
         else:
-            # X-RSS మరియు రెడ్‌బాక్స్ కోసం కూడా క్లీన్ షార్ట్ స్ట్రక్చర్
+            # X-RSS మరియు రెడ్‌బాక్స్ కోసం కూడా క్లీన్ షార్ట్ స్ట్రక్చర్ మరియు నెంబరింగ్
             raw_x_text = n['title']
             x_words = raw_x_text.split()
             short_x_subject = " ".join(x_words[:3]) if len(x_words) > 3 else "Flash Update"
             
             msg_block = (
-                f"⏰ <b>[{arrival_time}]</b>\n"
-                f"{icon} <b>{short_x_subject}:-</b>\n\n"
-                f"  {safe_html_text(raw_x_text)}"
+                f"🔢 <b>[#{i}/{total_news_count}]</b>  ⏰ <b>[{arrival_time}]</b>\n"
+                f"{icon} <b>{safe_html_text(short_x_subject)}:</b>\n\n"
+                f"{safe_html_text(raw_x_text)}"
             )
             bot.send_message(message.chat.id, msg_block, parse_mode='HTML', disable_web_page_preview=True)
             
-        time.sleep(0.3)
+        time.sleep(0.4)
         
-    bot.send_message(message.chat.id, f"──────────────────────\n📌 <b>మొత్తం వార్తల సంఖ్య: {len(filtered)}</b>", parse_mode='HTML')
-    log(f"✅ Success: Completed broadcasting all {len(filtered)} news items for '{cmd_name} {hour}'.")
-    
+    # 🎯 చంటి గారు, లిస్ట్ మొత్తం పూర్తయ్యాక వచ్చే పక్కా ఎండ్ మెసేజ్ లాక్ చేసాను సార్!
+    final_end_msg = (
+        f"──────────────────────\n"
+        f"✅ <b>చంటి గారు, ఇప్పటివరకు ఉన్న అన్ని వార్తలు వచ్చేసాయి సార్!</b>\n"
+        f"📌 <b>మొత్తం పంపిన వార్తల సంఖ్య: {total_news_count}</b>"
+    )
+    bot.send_message(message.chat.id, final_end_msg, parse_mode='HTML')
+    log(f"✅ Success: Completed broadcasting all {total_news_count} news items for '{cmd_name} {hour}'.")
 # ==========================================================
 # 🎯 MASTER AI SUMMARY COMMAND (10-BATCH GEMINI SAFE SYSTEM)
 # ==========================================================
