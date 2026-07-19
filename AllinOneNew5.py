@@ -329,7 +329,7 @@ def send_night_pulse_report():
     log("⏰ Automatically generating Night Market Pulse Report (8 PM to 6 AM)...")
     try:
         now = datetime.now(IST)
-        cutoff_time = now - timedelta(hours=10)
+        cutoff_time = now - timedelta(hours=8)
         
         recent_important_news = []
         for n in rss_news_store:
@@ -347,7 +347,7 @@ def send_night_pulse_report():
                 recent_important_news.append(news_block)
 
         if not recent_important_news:
-            no_news_msg = "⚡ <b>🎯 NIGHT MARKET PULSE (06:00 AM)</b> ⚡\n📌 <b>మార్కెట్ అప్‌డేట్:</b> నిన్న రాత్రి 8:00 PM నుండి ఈరోజు ఉదయం 6:00 AM వరకు కీలకమైన వార్తలు ఏవీ రాలేదు సార్."
+            no_news_msg = "⚡ <b>🎯 NIGHT MARKET PULSE (06:00 AM)</b> ⚡\n📌 <b>మార్కెట్ అప్‌డేట్:</b> నిన్న రాత్రి 10:00 PM నుండి ఈరోజు ఉదయం 6:00 AM వరకు కీలకమైన వార్తలు ఏవీ రాలేదు సార్."
             bot.send_message(CHAT_ID, no_news_msg, parse_mode='HTML')
             log("📌 Night Pulse Report Completed: No news recorded.")
             return
@@ -365,13 +365,10 @@ def send_night_pulse_report():
 # ==========================================================
 RSS_FEEDS = {
     "CNBC": "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/latest.xml",
-    "Economic Times": "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
 }
 
 X_RSS_FEEDS = {
-    "NDTV Profit (X)": "https://nitter.net/NDTVProfitIndia/rss",
     "ET NOW (X)": "https://nitter.net/ETNOWlive/rss",
-    "Redbox X": "https://nitter.net/REDBOXINDIA/rss" 
 }
 
 def clean_x_text(text):
@@ -574,7 +571,7 @@ def get_news_by_time(message):
             elif source_type == "NORMAL" and n.get('type') == "NORMAL": filtered.append(n)
             
     # మార్కెట్ అప్‌డేట్స్ కాబట్టి పాత వార్త నుండి కొత్త వార్త క్రమంలో (ఆరోహణ క్రమం) పంపితే చదవడానికి బాగుంటుంది సార్
-    filtered.sort(key=lambda x: x['time']) 
+    filtered.sort(key=lambda x: x['time'], reverse=True)
     total_news_count = len(filtered)
     log(f"📊 Found {total_news_count} matching news items in store.")
     
